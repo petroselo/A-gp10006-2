@@ -1,0 +1,2 @@
+Roughly how to find a fiducial in an image.
+https://stackoverflow.com/questions/12140802/position-recognition-of-simple-fiducial-in-image

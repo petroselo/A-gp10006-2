@@ -10,7 +10,8 @@ writer = cv.VideoWriter('output.avi', fourcc, 30, (320, 576), isColor = False)
 
 # Can be a device (simple integer) or a file name.
 # capture is a VideoCapture object
-capture = cv.VideoCapture('pride.mp4')
+#capture = cv.VideoCapture('pride.mp4')
+capture = cv.VideoCapture(0)
 if not capture.isOpened():
 	print('Failed to open camera.')
 	exit()
@@ -28,15 +29,15 @@ while True:
 	invert = cv.flip(-(2*gray-128)+128,0)
 	writer.write(invert)
 
-	randomColour = 255 * np.array([rd.random(), rd.random(), rd.random()]) * np.ones(shape=(20,20,3), dtype='uint8')
-	random_writer.write(randomColour.astype(dtype='uint8'))
+	#randomColour = 255 * np.array([rd.random(), rd.random(), rd.random()]) * np.ones(shape=(20,20,3), dtype='uint8')
+	#random_writer.write(randomColour.astype(dtype='uint8'))
 
-	print(invert.shape)
-	print(invert.dtype)
+	#print(invert.shape)
+	#print(invert.dtype)
 
 	cv.imshow('vid', invert)
 	#can be changed to delay of 1 for live video
-	if cv.waitKey(5) == ord('q'):
+	if cv.waitKey(1) == ord('q'):
 		break
 
 capture.release()

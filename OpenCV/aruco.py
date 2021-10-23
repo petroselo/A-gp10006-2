@@ -8,15 +8,19 @@ green = (0, 255, 0)
 red = (0, 0, 255)
 width = 2
 
+webcam = cv.VideoCapture(0)
+webcam.set(cv.CAP_PROP_FRAME_WIDTH, 800) #800
+webcam.set(cv.CAP_PROP_FRAME_HEIGHT, 600) #600
+#webcam.set(cv.CAP_PROP_FPS, 25)
 
-video = cv.VideoCapture(0)
-if not video.isOpened():
+
+if not webcam.isOpened():
 	print('Failed to open camera.')
 	exit()
 
 while True:
 
-	ret, frame = video.read()
+	ret, frame = webcam.read()
 	if not ret:
 		print('Video finished')
 		break
@@ -41,8 +45,9 @@ while True:
 
 	cv.imshow('Video', frame)
 	if cv.waitKey(1) == ord('q'):
+		print(frame.shape)
 		break
 
 
-video.release()
+webcam.release()
 cv.destroyAllWindows()

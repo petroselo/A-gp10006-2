@@ -1,0 +1,21 @@
+Create program to print out cards and "spaces". Which are a4 or a3 papers with 
+corner markers
+
+Explore camera calibration and make a program to calibrate a camera.
+
+Make a general loop to process options and spaces.
+
+Explore threading for UI and image processing.
+
+Explore Time blurring at the marker detection step to make things more resiliant.
+Explore playing with camera parameters to maek things more resiliant as well. Maybe at camera start up, or put down a pc configure marker which brings up a UI to configure.
+
+Make a simple 3A1 demo with coloured circles in a space.
+
+Make a simple logic gate demo which also lets you combine cards into super cards.
+
+Make a simple controller to be able to adjust parameters. A slider or a rotating arrow.
+
+
+
+Less feasible. Put 4A2 code into this.

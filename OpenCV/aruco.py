@@ -13,6 +13,10 @@ webcam.set(cv.CAP_PROP_FRAME_WIDTH, 800) #800
 webcam.set(cv.CAP_PROP_FRAME_HEIGHT, 600) #600
 #webcam.set(cv.CAP_PROP_FPS, 25)
 
+#Disable autofocus
+webcam.set(cv.CAP_PROP_AUTOFOCUS, 0)
+print(webcam.get(cv.CAP_PROP_FOCUS))
+
 
 if not webcam.isOpened():
 	print('Failed to open camera.')
@@ -44,9 +48,15 @@ while True:
 
 
 	cv.imshow('Video', frame)
-	if cv.waitKey(1) == ord('q'):
+
+	inp = cv.waitKey(1)
+	if inp == ord('q'):
 		print(frame.shape)
 		break
+	if inp == ord('f'):
+		print(webcam.get(cv.CAP_PROP_FOCUS))
+		print(webcam.get(cv.CAP_PROP_ZOOM))
+		webcam.set(cv.CAP_PROP_AUTOFOCUS, (webcam.get(cv.CAP_PROP_AUTOFOCUS)+1)%2 )
 
 
 webcam.release()

@@ -7,6 +7,7 @@ detectParams = cv.aruco.DetectorParameters_create()
 GREEN = (0, 255, 0)
 RED = (0, 0, 255)
 BLUE = (255, 0, 0)
+TEAL = (255, 255, 0)
 width = 2
 
 menuRadius = 100
@@ -59,6 +60,8 @@ while True:
 				if (debugrX - debugX)**2 + (debugrY - debugY)**2 < menuRadius**2:
 					DEBUGrEJECTED = True
 
+#		if 10 in markers and 11 in markers and 12 in markers and 13 in markers:
+#			(tl, tr, bl, br) =
 
 		for (fid, tagCorners) in markers:
 			# Convert to ints in the frame.

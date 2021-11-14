@@ -1,0 +1,1 @@
+class logic_card:

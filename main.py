@@ -5,30 +5,13 @@ import numpy as np
 import cv2 as cv
 from cv2 import aruco as ar
 
-# User modules
-#from camera_calibration import calibrate
-from perspective_calibration import perspective_calibrate
-
-
 # User-defined constants
 import constants as C
 
-##  GLOBAL STUFF
-VIDEO_TITLE = 'Table View'
-TITLE_PC = 'Perspective Calibration'
-
-unit_corner_points = np.array([
-[-1,-1,0],
-[-1,1,0],
-[1,1,0],
-[1.,-1,0]
-], dtype='float32')
-centre_points = np.array([
-[9,9,0],
-[9,9,0],
-[9,9,0],
-[9,9,0]
-], dtype='float32')
+# User modules
+#from camera_calibration import calibrate
+from perspective_calibration import get_table_camera_transform
+from Logic_cards import Logic_card
 
 ## Initial calibration values
 cam_mtx = C.INITIAL_CALIBRATION_CM
@@ -41,6 +24,8 @@ def main():
 	PM = np.eye(3, dtype='float64')
 	dimensions = np.array([800, 600])
 
+	logic_cards = []
+
 ## Main loop
 	while True:
 
@@ -51,101 +36,79 @@ def main():
 
 		table_frame = cv.warpPerspective(cam_frame, PM, dimensions)
 
-		# do all work with table frame.
+		(allCorners, ids, rejected) = cv.aruco.detectMarkers(table_frame, C.DICTIONARY, parameters = detect_params)
 
-		# draw table frame, untransform table frame back to cam frame and draw that too.
+		#construct list of logic cards and their positions.
 
-		(corners, ids, rejected) = cv.aruco.detectMarkers(table_frame, C.DICTIONARY, parameters = detect_params)
+		#send that information off to another function to analyse the logic and work out what to do about it and draw that on the frame.
 
-#		if len(corners) > 0:
-#			fids = ids.flatten()
-#			markers = zip(fids, corners)
-#			for (fid, corner) in markers:
-#				if fid > 19 and fid < 28:
-#
-#				# Convert to ints in the frame.
-#				#(tl, tr, br, bl) = pts = tagCorners.reshape((4, 2)).astype(np.int32)
-#
-#				#Draw lines to show markers and rejected options.
-#				cv.polylines(table_frame, [pts], True, C.GREEN, C.LINE_WIDTH)
-#
-
-		cv.imshow(VIDEO_TITLE, table_frame)
+		if len(allCorners) > 0:
+			fids = ids.flatten()
+			markers = zip(fids, allCorners)
+			for (fid, raw_corners) in markers:
+				# If in logic card range of markers.
+				if fid > 19 and fid < 28:
+					corners = raw_corners.reshape((4, 2)).astype(np.int32)
+					logic_cards.append( Logic_card(fid, corners))
 
 
+
+		# Loop through logic cards connecting each input to closest output within snapping distance.
+		for lc in logic_cards:
+			for inp in lc.inps:
+				for lcc in logic_cards:
+					if lc is not lcc: # exclude current card
+						for outp in lcc.outps:
+							dist = np.linalg.norm(outp.pos - inp.pos)
+							if dist < lc.snap_distance and ( (inp.conn is None) or (dist < np.linalg.norm(inp.pos - inp.conn.pos) )):
+								inp.conn = outp
+
+		# Evaluate the state of each card.
+		for lc in logic_cards:
+			if not lc.evaluated:
+				lc.evaluate()
+
+		# Loop through logic cards drawing the state
+		for lc in logic_cards:
+
+			for inp in lc.inps:
+				cv.line(table_frame, tuple(inp.pos.astype('int')), tuple((inp.pos+lc.xvec).astype('int')), C.BLACK)
+				cv.circle(table_frame, tuple(inp.pos.astype('int')), int(0.25*lc.scale), C.BLACK)
+				if inp.conn is not None:
+					cv.line(table_frame, tuple(inp.pos.astype('int')), tuple((inp.conn.pos).astype('int')), C.BLACK)
+
+			for o in lc.outps:
+				cv.circle(table_frame, tuple(o.pos.astype('int')), int(0.25*lc.scale), C.BLUE if o.val>1 else (C.GREEN if o.val==1 else C.RED), -1 if o.val<2 else 1)
+				cv.line(table_frame, tuple(o.pos.astype('int')), tuple((o.pos-lc.xvec).astype('int')), C.BLUE, 2 if o.val<2 else 1)
+
+
+		logic_cards.clear()
+
+
+
+		cv.imshow(C.VIDEO_TITLE, table_frame)
+
+
+
+		# Quitting condition
 		inp = cv.waitKey(1)
 		if inp == ord('q'):
 			break
 
+		# Generate, Save and Load previous perspective calibration
 		if inp == ord('p'):
-			PM, dimensions = set_table_camera_transform(C.BOARD6_2, webcam, detect_params, n_frames=10)
+			PM, dimensions = get_table_camera_transform(C.BOARD6_2, webcam, detect_params, avg_frames=20,
+																									cam_mtx=cam_mtx, dist_coeffs=dist_coeffs)
+		if inp == ord('l'):
+			PM = np.loadtxt('PerspectiveMatrix.txt')
+			dimensions = np.loadtxt('Dimensions.txt', dtype='int64')
+		if inp == ord('s'):
+			np.savetxt('PerspectiveMatrix.txt', PM)
+			np.savetxt('Dimensions.txt', dimensions, fmt='%u')
 
 
 	webcam.release()
 	cv.destroyAllWindows()
-
-# Returns a table width, height, and perspective matrix.
-def set_table_camera_transform(board, webcam, detect_params, n_frames):
-	unit_dst = np.float32([[0,1], [0,0], [1, 0], [1,1]])
-	bounds = np.array([9, 9, 0])
-	captured_frames = 0
-	capturing = False
-	avg_table_corners = np.zeros((4,2), dtype='float32')
-	while captured_frames < n_frames:
-		ret, frame = webcam.read()
-		if not ret:
-			print('Video finished')
-			break
-
-		corners, ids, _ = cv.aruco.detectMarkers(frame, board.dictionary, parameters = detect_params)
-
-		# Get the pose of the board.
-		if ids is not None and len(ids) > 0:
-			valid, rvec, tvec = ar.estimatePoseBoard(corners, ids, board, cam_mtx, dist_coeffs, None, None, False)
-			if valid:
-				# Determint eh location of the bound corners in board space
-				corners = centre_points + unit_corner_points*bounds
-				# Find the location of the bound corners in image space
-				table_corners, _ = cv.projectPoints(corners, rvec, tvec, cam_mtx, dist_coeffs)
-				table_corners = table_corners.reshape(4,2).astype('float32')
-				table_corners_int = table_corners.astype('int')
-
-				if capturing:
-					avg_table_corners += table_corners
-					captured_frames += 1
-
-				# Draw line around table area:
-				for i in range(4):
-					cv.line(frame, tuple(table_corners_int[i,:]), tuple(table_corners_int[(i+1)%4,:]), C.RED if capturing else C.BLUE, 2)
-
-
-		cv.imshow(TITLE_PC, frame)
-
-		inp = cv.waitKey(1)
-		if inp == ord('q'):
-			break
-
-		if not capturing:
-			# Adjust bounds
-			if inp == ord('d'):
-				bounds[0] += 1
-			if inp == ord('a'):
-				bounds[0] -= 1
-			if inp == ord('w'):
-				bounds[1] += 1
-			if inp == ord('s'):
-				bounds[1] -= 1
-
-	# Calculate perspective transform.
-			if inp == ord('p'):
-				capturing = True
-	small_side = min(bounds[0], bounds[1])
-	dimensions = (600 * np.array([bounds[0]/small_side, bounds[1]/small_side])).astype('int')
-
-	PM = cv.getPerspectiveTransform((avg_table_corners / n_frames).astype('float32'), (unit_dst * dimensions).astype('float32'))
-	cv.destroyWindow(TITLE_PC)
-	#PM is float64
-	return PM, dimensions
 
 
 def initial_setup():

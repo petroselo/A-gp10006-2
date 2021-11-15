@@ -87,10 +87,6 @@ def main():
 
 
 
-
-
-
-
 		cv.imshow(VIDEO_TITLE, frame)
 
 

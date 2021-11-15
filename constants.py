@@ -2,12 +2,21 @@ import numpy as np
 import cv2 as cv
 from cv2 import aruco as ar
 
+# Logic gate enum ersatz. obv 0 and 1 are themselves
+FLOATING = 2
+UNKNOWABLE = 3
+
+##  GLOBAL STUFF
+VIDEO_TITLE = 'Table View'
+TITLE_PC = 'Perspective Calibration'
+
 DICTIONARY = ar.Dictionary_get(ar.DICT_4X4_50)
 
 # Default font to use
 FONT = cv.FONT_HERSHEY_SIMPLEX
 FONT_WIDTH = 1
 
+BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 RED = (0, 0, 255)
 BLUE = (255, 0, 0)

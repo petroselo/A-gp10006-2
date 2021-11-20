@@ -4,6 +4,7 @@
 import numpy as np
 import cv2 as cv
 from cv2 import aruco as ar
+from numpy.core.fromnumeric import shape
 
 # User-defined constants
 import constants as C
@@ -25,6 +26,12 @@ def main():
 	dimensions = np.array([800, 600])
 
 	logic_cards = []
+
+	proj_window = cv.namedWindow(C.PROJ_WINDOW, cv.WND_PROP_FULLSCREEN)
+	proj_img = np.zeros(shape=(C.PROJ_HEIGHT, C.PROJ_WIDTH, 3), dtype=np.uint8) + 255
+	cv.putText(proj_img, 'Your Mum', (960,540), C.FONT, 1, C.BLUE, 2)
+	cv.imshow(C.PROJ_WINDOW, proj_img)
+
 
 ## Main loop
 	while True:
@@ -105,6 +112,13 @@ def main():
 		if inp == ord('s'):
 			np.savetxt('PerspectiveMatrix.txt', PM)
 			np.savetxt('Dimensions.txt', dimensions, fmt='%u')
+		
+		#Toggle projector window to fullscreen.
+		if inp ==ord('f'):
+			if cv.getWindowProperty(C.PROJ_WINDOW, cv.WND_PROP_FULLSCREEN) == cv.WINDOW_NORMAL:
+				cv.setWindowProperty(C.PROJ_WINDOW,cv.WND_PROP_FULLSCREEN,cv.WINDOW_FULLSCREEN)
+			else:
+				cv.setWindowProperty(C.PROJ_WINDOW,cv.WND_PROP_FULLSCREEN,cv.WINDOW_NORMAL)
 
 
 	webcam.release()
@@ -115,7 +129,7 @@ def initial_setup():
 	detect_params = cv.aruco.DetectorParameters_create()
 
 	# Set up webcam
-	webcam = cv.VideoCapture(0)
+	webcam = cv.VideoCapture(2)
 	webcam.set(cv.CAP_PROP_FRAME_WIDTH, 800)
 	webcam.set(cv.CAP_PROP_FRAME_HEIGHT, 600)
 	#webcam.set(cv.CAP_PROP_FPS, 25)

@@ -9,6 +9,7 @@ UNKNOWABLE = 3
 ##  GLOBAL STUFF
 VIDEO_TITLE = 'Table View'
 TITLE_PC = 'Perspective Calibration'
+PROJ_WINDOW = 'Projector output'
 
 DICTIONARY = ar.Dictionary_get(ar.DICT_4X4_50)
 
@@ -45,13 +46,6 @@ dictionary = ar.Dictionary_get( cv.aruco.DICT_4X4_50 )
 BOARD6 = ar.GridBoard_create(x_markers, y_markers, marker_width, marker_separation, dictionary, first_marker)
 BOARD6_2 = ar.GridBoard_create(4, 4, 3, 2, dictionary, 6)
 
-# Logic card dictionary
-#logic_card_dict =
-#{
-#20: #new 1 card
-#21: #new 0 card
-#22: #new and card
-#23: # new not card
-#24: #new or card
-#25: # new xor card
-#}
+# Projector 
+PROJ_WIDTH = 1920
+PROJ_HEIGHT = 1080

@@ -46,6 +46,13 @@ dictionary = ar.Dictionary_get( cv.aruco.DICT_4X4_50 )
 BOARD6 = ar.GridBoard_create(x_markers, y_markers, marker_width, marker_separation, dictionary, first_marker)
 BOARD6_2 = ar.GridBoard_create(4, 4, 3, 2, dictionary, 6)
 
+# 4x4 board with markers width 2 and gap between width 1. Total side length 11.
+PROJECTOR_BOARD = ar.GridBoard_create(4, 4, 2, 1, dictionary, 34) #using 16 markers 34 -> 49
+
 # Projector 
 PROJ_WIDTH = 1920
 PROJ_HEIGHT = 1080
+PROJ_SHAPE = (PROJ_HEIGHT, PROJ_WIDTH)
+
+# Ratio of seen table image to hi-def image on which drawing takes place.
+TABLE_OVERLAY_FACTOR = 2

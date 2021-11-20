@@ -3,7 +3,7 @@
 # External Libraries
 import numpy as np
 import cv2 as cv
-from cv2 import aruco as ar
+from cv2 import aruco as ar, imshow
 from numpy.core.fromnumeric import shape
 
 # User-defined constants
@@ -12,6 +12,7 @@ import constants as C
 # User modules
 #from camera_calibration import calibrate
 from perspective_calibration import get_table_camera_transform
+from projector_calibration import calibrate_projector
 from Logic_cards import Logic_card
 
 ## Initial calibration values
@@ -22,17 +23,20 @@ def main():
 
 	webcam, detect_params = initial_setup()
 
-	PM = np.eye(3, dtype='float64')
+	CM = np.eye(3, dtype='float64')
 	dimensions = np.array([800, 600])
+
+	projector_blank = False
 
 	logic_cards = []
 
 	proj_window = cv.namedWindow(C.PROJ_WINDOW, cv.WND_PROP_FULLSCREEN)
 	proj_img = np.zeros(shape=(C.PROJ_HEIGHT, C.PROJ_WIDTH, 3), dtype=np.uint8) + 255
-	cv.putText(proj_img, 'Your Mum', (960,540), C.FONT, 1, C.BLUE, 2)
+	cv.putText(proj_img, 'Hello World', (960,540), C.FONT, 1, C.BLUE, 2)
 	cv.imshow(C.PROJ_WINDOW, proj_img)
 
-
+	table_overlay = np.zeros(shape=(dimensions[1]*C.TABLE_OVERLAY_FACTOR, dimensions[0]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
+	
 ## Main loop
 	while True:
 
@@ -41,7 +45,7 @@ def main():
 			print('Video finished')
 			break
 
-		table_frame = cv.warpPerspective(cam_frame, PM, dimensions)
+		table_frame = cv.warpPerspective(cam_frame, CM, dimensions)
 
 		(allCorners, ids, rejected) = cv.aruco.detectMarkers(table_frame, C.DICTIONARY, parameters = detect_params)
 
@@ -57,8 +61,6 @@ def main():
 				if fid > 19 and fid < 28:
 					corners = raw_corners.reshape((4, 2)).astype(np.int32)
 					logic_cards.append( Logic_card(fid, corners))
-
-
 
 		# Loop through logic cards connecting each input to closest output within snapping distance.
 		for lc in logic_cards:
@@ -88,13 +90,9 @@ def main():
 				cv.circle(table_frame, tuple(o.pos.astype('int')), int(0.25*lc.scale), C.BLUE if o.val>1 else (C.GREEN if o.val==1 else C.RED), -1 if o.val<2 else 1)
 				cv.line(table_frame, tuple(o.pos.astype('int')), tuple((o.pos-lc.xvec).astype('int')), C.BLUE, 2 if o.val<2 else 1)
 
-
 		logic_cards.clear()
 
-
-
 		cv.imshow(C.VIDEO_TITLE, table_frame)
-
 
 
 		# Quitting condition
@@ -103,14 +101,17 @@ def main():
 			break
 
 		# Generate, Save and Load previous perspective calibration
-		if inp == ord('p'):
-			PM, dimensions = get_table_camera_transform(C.BOARD6_2, webcam, detect_params, avg_frames=20,
+		if inp == ord('c'):
+			CM, dimensions = get_table_camera_transform(C.BOARD6_2, webcam, detect_params, avg_frames=20,
 																									cam_mtx=cam_mtx, dist_coeffs=dist_coeffs)
+			table_overlay = np.zeros(shape=(dimensions[0]*C.TABLE_OVERLAY_FACTOR, dimensions[1]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
+		
 		if inp == ord('l'):
-			PM = np.loadtxt('PerspectiveMatrix.txt')
+			CM = np.loadtxt('PerspectiveMatrix.txt')
 			dimensions = np.loadtxt('Dimensions.txt', dtype='int64')
+			table_overlay = np.zeros(shape=(dimensions[1]*C.TABLE_OVERLAY_FACTOR, dimensions[0]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
 		if inp == ord('s'):
-			np.savetxt('PerspectiveMatrix.txt', PM)
+			np.savetxt('PerspectiveMatrix.txt', CM)
 			np.savetxt('Dimensions.txt', dimensions, fmt='%u')
 		
 		#Toggle projector window to fullscreen.
@@ -120,6 +121,15 @@ def main():
 			else:
 				cv.setWindowProperty(C.PROJ_WINDOW,cv.WND_PROP_FULLSCREEN,cv.WINDOW_NORMAL)
 
+		# Projector calibration
+		if inp == ord('p'):
+			calibrate_projector()
+		if inp == ord('b'):
+			if projector_blank:
+				imshow(C.PROJ_WINDOW, np.zeros(shape=C.PROJ_SHAPE))
+			else:
+				imshow(C.PROJ_WINDOW, np.zeros(shape=C.PROJ_SHAPE))
+			projector_blank = not projector_blank
 
 	webcam.release()
 	cv.destroyAllWindows()

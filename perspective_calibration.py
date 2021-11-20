@@ -74,12 +74,12 @@ def get_table_camera_transform(board, webcam, detect_params, avg_frames, cam_mtx
 				bounds[1] -= 1
 
 	# Calculate perspective transform.
-			if inp == ord('p'):
+			if inp == ord('c'):
 				capturing = True
 	small_side = min(bounds[0], bounds[1])
 	dimensions = (600 * np.array([bounds[0]/small_side, bounds[1]/small_side])).astype('int')
 
-	PM = cv.getPerspectiveTransform((avg_table_corners / avg_frames).astype('float32'), (unit_dst * dimensions).astype('float32'))
+	CM = cv.getPerspectiveTransform((avg_table_corners / avg_frames).astype('float32'), (unit_dst * dimensions).astype('float32'))
 	cv.destroyWindow(C.TITLE_PC)
-	#PM is float64
-	return PM, dimensions
+	#CM is float64
+	return CM, dimensions

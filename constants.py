@@ -25,8 +25,8 @@ LINE_WIDTH = 2
 
 # Camera calibration
 INITIAL_CALIBRATION_CM = np.array([[600.,   0., 300.],
-																	 [  0., 800., 400.],
-																	 [  0.,   0.,   1.]])
+								   [  0., 800., 400.],
+								   [  0.,   0.,   1.]])
 
 INITIAL_CALIBRATION_DC = np.array([0.0, 0, 0, 0, 0])
 CALIBRATION_NUMBER = 15
@@ -47,7 +47,8 @@ BOARD6 = ar.GridBoard_create(x_markers, y_markers, marker_width, marker_separati
 BOARD6_2 = ar.GridBoard_create(4, 4, 3, 2, dictionary, 6)
 
 # 4x4 board with markers width 2 and gap between width 1. Total side length 11.
-PROJECTOR_BOARD = ar.GridBoard_create(4, 4, 2, 1, dictionary, 34) #using 16 markers 34 -> 49
+PROJ_BOARD = ar.GridBoard_create(2, 2, 3, 5, dictionary, 40) #using 16 markers 34 -> 49
+PROJ_BOARD_SIDELENGTH = 11
 
 # Projector 
 PROJ_WIDTH = 1920

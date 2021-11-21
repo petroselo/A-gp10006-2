@@ -24,6 +24,7 @@ def main():
 	webcam, detect_params = initial_setup()
 
 	CM = np.eye(3, dtype='float64')
+	PM = np.eye(3, dtype='float64')
 	dimensions = np.array([800, 600])
 
 	projector_blank = False
@@ -36,7 +37,7 @@ def main():
 	cv.imshow(C.PROJ_WINDOW, proj_img)
 
 	table_overlay = np.zeros(shape=(dimensions[1]*C.TABLE_OVERLAY_FACTOR, dimensions[0]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
-	
+
 ## Main loop
 	while True:
 
@@ -123,7 +124,9 @@ def main():
 
 		# Projector calibration
 		if inp == ord('p'):
-			calibrate_projector()
+			PM = calibrate_projector(webcam, CM, dimensions, avg_frames=20, detect_params=detect_params)
+			print(PM)
+			
 		if inp == ord('b'):
 			if projector_blank:
 				imshow(C.PROJ_WINDOW, np.zeros(shape=C.PROJ_SHAPE))

@@ -8,7 +8,7 @@ green = (0, 255, 0)
 red = (0, 0, 255)
 width = 2
 
-webcam = cv.VideoCapture(0)
+webcam = cv.VideoCapture(2)
 webcam.set(cv.CAP_PROP_FRAME_WIDTH, 800) #800
 webcam.set(cv.CAP_PROP_FRAME_HEIGHT, 600) #600
 #webcam.set(cv.CAP_PROP_FPS, 25)

@@ -47,7 +47,7 @@ BOARD6 = ar.GridBoard_create(x_markers, y_markers, marker_width, marker_separati
 BOARD6_2 = ar.GridBoard_create(4, 4, 3, 2, dictionary, 6)
 
 # 4x4 board with markers width 2 and gap between width 1. Total side length 11.
-PROJ_BOARD = ar.GridBoard_create(2, 2, 3, 5, dictionary, 40) #using 16 markers 34 -> 49
+PROJ_BOARD = ar.GridBoard_create(2, 2, 3, 5, dictionary, 46)
 PROJ_BOARD_SIDELENGTH = 11
 
 # Projector 

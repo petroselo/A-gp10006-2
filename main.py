@@ -12,7 +12,7 @@ import constants as C
 # User modules
 #from camera_calibration import calibrate
 from perspective_calibration import get_table_camera_transform
-from projector_calibration import calibrate_projector
+from projector_calibration_manual import calibrate_projector
 from Logic_cards import Logic_card
 
 ## Initial calibration values

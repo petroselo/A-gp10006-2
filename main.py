@@ -4,7 +4,14 @@
 import numpy as np
 import cv2 as cv
 from cv2 import aruco as ar, imshow
-from numpy.core.fromnumeric import shape
+import io
+
+#import matplotlib
+import matplotlib.pyplot as plt # or could look into plotly or ggplot2
+# from numpy.core.fromnumeric import shape
+from numpy.core.numeric import zeros_like
+from OpenCV.debug import BLUE
+
 
 # User-defined constants
 import constants as C
@@ -13,7 +20,9 @@ import constants as C
 #from camera_calibration import calibrate
 from perspective_calibration import get_table_camera_transform
 from projector_calibration_manual import calibrate_projector
+
 from Logic_cards import Logic_card
+from Pflow_cards import Pflow_card
 
 ## Initial calibration values
 cam_mtx = C.INITIAL_CALIBRATION_CM
@@ -25,18 +34,19 @@ def main():
 
 	CM = np.eye(3, dtype='float64')
 	PM = np.eye(3, dtype='float64')
-	dimensions = np.array([800, 600])
+	table_dimensions = np.array([800, 600])
 
 	projector_blank = False
 
 	logic_cards = []
+	pflow_cards = []
 
 	proj_window = cv.namedWindow(C.PROJ_WINDOW, cv.WND_PROP_FULLSCREEN)
 	proj_img = np.zeros(shape=(C.PROJ_HEIGHT, C.PROJ_WIDTH, 3), dtype=np.uint8) + 255
 	cv.putText(proj_img, 'Hello World', (960,540), C.FONT, 1, C.BLUE, 2)
 	cv.imshow(C.PROJ_WINDOW, proj_img)
 
-	table_overlay = np.zeros(shape=(dimensions[1]*C.TABLE_OVERLAY_FACTOR, dimensions[0]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
+	table_overlay = np.zeros(shape=(table_dimensions[1]*C.TABLE_OVERLAY_FACTOR, table_dimensions[0]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
 
 ## Main loop
 	while True:
@@ -46,7 +56,8 @@ def main():
 			print('Video finished')
 			break
 
-		table_frame = cv.warpPerspective(cam_frame, CM, dimensions)
+		table_frame = cv.warpPerspective(cam_frame, CM, table_dimensions)
+		table_overlay *= 0
 
 		(allCorners, ids, rejected) = cv.aruco.detectMarkers(table_frame, C.DICTIONARY, parameters = detect_params)
 
@@ -58,10 +69,19 @@ def main():
 			fids = ids.flatten()
 			markers = zip(fids, allCorners)
 			for (fid, raw_corners) in markers:
+
 				# If in logic card range of markers.
 				if fid > 19 and fid < 28:
 					corners = raw_corners.reshape((4, 2)).astype(np.int32)
 					logic_cards.append( Logic_card(fid, corners))
+
+				# If in pflow card range
+				if fid > 9 and fid < 16:
+					img_corners = raw_corners.reshape((4, 2)).astype(np.int32)
+					corners = (raw_corners.reshape((4, 2)).astype(np.int32) * np.array([1, -1]) + np.array([0, table_dimensions[1]]) )/20 # flip the y coord.
+					pflow_cards.append( Pflow_card(fid, corners, img_corners))
+
+
 
 		# Loop through logic cards connecting each input to closest output within snapping distance.
 		for lc in logic_cards:
@@ -87,13 +107,70 @@ def main():
 				if inp.conn is not None:
 					cv.line(table_frame, tuple(inp.pos.astype('int')), tuple((inp.conn.pos).astype('int')), C.BLACK)
 
+				cv.line(table_overlay, tuple(2*inp.pos.astype('int')), tuple(2*(inp.pos+lc.xvec).astype('int')), C.BLUE, 2)
+				cv.circle(table_overlay, tuple(2*inp.pos.astype('int')), int(0.5*lc.scale), C.BLUE)
+				if inp.conn is not None:
+					cv.line(table_overlay, tuple(2*inp.pos.astype('int')), tuple(2*(inp.conn.pos).astype('int')), C.RED, 2)
+
 			for o in lc.outps:
 				cv.circle(table_frame, tuple(o.pos.astype('int')), int(0.25*lc.scale), C.BLUE if o.val>1 else (C.GREEN if o.val==1 else C.RED), -1 if o.val<2 else 1)
 				cv.line(table_frame, tuple(o.pos.astype('int')), tuple((o.pos-lc.xvec).astype('int')), C.BLUE, 2 if o.val<2 else 1)
 
+				cv.circle(table_overlay, tuple(2*o.pos.astype('int')), int(0.5*lc.scale), C.BLUE if o.val>1 else (C.GREEN if o.val==1 else C.RED), -1 if o.val<2 else 1)
+				cv.line(table_overlay, tuple(2*o.pos.astype('int')), tuple(2*(o.pos-lc.xvec).astype('int')), C.BLUE, 4 if o.val<2 else 2)
+
 		logic_cards.clear()
 
+		if len(pflow_cards) > 0:
+			# Construct a grid.
+			xvec, yvec = np.linspace(0, table_dimensions[0]/20, 101), np.linspace(0, table_dimensions[1]/20, 101)
+			x, y = np.meshgrid(xvec, yvec, indexing='ij')
+			z = x + y*1j
+			F = zeros_like(z) # = φ + jψ
+			# Add all the card functions to the grid
+			for card in pflow_cards:
+				F += card.F(z)
+
+			ψ = np.imag(F)
+			# Plot the contours, exclude cards and draw on the table overlay.
+			fig = plt.figure(dpi=100, figsize=(table_dimensions[0]/100, table_dimensions[1]/100), frameon=False ) #facecolor should be irrelevant.
+			ax = fig.add_subplot(111)
+			#ax.axis('off')
+
+			ax.set_facecolor('black')
+			#ax.contour(x, y, ψ, colors="red", levels=np.linspace(np.min(ψ), np.max(ψ), 23), antialiased=False, linestyles='solid') # BGR / RGB switching means Red <-> Blue
+			ax.contourf(x, y, ψ, levels=23, antialiased=False, linestyles='solid') # BGR / RGB switching means Red <-> Blue
+			fig.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
+			fig.canvas.draw()
+
+			buf = io.BytesIO()
+			fig.savefig(buf, format='raw', dpi=100*C.TABLE_OVERLAY_FACTOR , bbox_inches=0,pad_inches = 0)
+
+			plt.close(fig)
+			buf.seek(0)
+			plot_img = np.reshape(np.frombuffer(buf.getvalue(), dtype=np.uint8),
+                     newshape=(int(fig.bbox.bounds[3])*C.TABLE_OVERLAY_FACTOR, int(fig.bbox.bounds[2])*C.TABLE_OVERLAY_FACTOR, -1))[:,:,:3] #chop off alpha layer by taking only top 3 RGB layers
+			buf.close()
+
+			mask = 255 - cv.inRange(plot_img, C.BLACK, C.BLACK)
+			# Exclude card location them selves.
+
+			#cv.imshow('Plot image', plot_img)
+			#cv.imshow('mask', mask)
+			cv.copyTo(plot_img, mask, table_overlay)
+
+			# Don't project over cards themselves.
+			for card in pflow_cards:
+				cv.circle(table_overlay, card.img_pos, card.img_scale, C.BLACK)
+
+
+			pflow_cards.clear()
+
+
 		cv.imshow(C.VIDEO_TITLE, table_frame)
+
+		projector_output = cv.warpPerspective(table_overlay, PM, C.PROJ_SCREEN_DIMENSIONS)
+		cv.imshow(C.PROJ_WINDOW, projector_output)
 
 
 		# Quitting condition
@@ -103,17 +180,17 @@ def main():
 
 		# Generate, Save and Load previous perspective calibration
 		if inp == ord('c'):
-			CM, dimensions = get_table_camera_transform(C.BOARD6_2, webcam, detect_params, avg_frames=20,
+			CM, table_dimensions = get_table_camera_transform(C.BOARD6_2, webcam, detect_params, avg_frames=20,
 																									cam_mtx=cam_mtx, dist_coeffs=dist_coeffs)
-			table_overlay = np.zeros(shape=(dimensions[0]*C.TABLE_OVERLAY_FACTOR, dimensions[1]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
+			table_overlay = np.zeros(shape=(table_dimensions[0]*C.TABLE_OVERLAY_FACTOR, table_dimensions[1]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
 		
 		if inp == ord('l'):
 			CM = np.loadtxt('PerspectiveMatrix.txt')
-			dimensions = np.loadtxt('Dimensions.txt', dtype='int64')
-			table_overlay = np.zeros(shape=(dimensions[1]*C.TABLE_OVERLAY_FACTOR, dimensions[0]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
+			table_dimensions = np.loadtxt('Dimensions.txt', dtype='int64')
+			table_overlay = np.zeros(shape=(table_dimensions[1]*C.TABLE_OVERLAY_FACTOR, table_dimensions[0]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8) + 100
 		if inp == ord('s'):
 			np.savetxt('PerspectiveMatrix.txt', CM)
-			np.savetxt('Dimensions.txt', dimensions, fmt='%u')
+			np.savetxt('Dimensions.txt', table_dimensions, fmt='%u')
 		
 		#Toggle projector window to fullscreen.
 		if inp ==ord('f'):
@@ -124,7 +201,7 @@ def main():
 
 		# Projector calibration
 		if inp == ord('p'):
-			PM = calibrate_projector(webcam, CM, dimensions, avg_frames=20, detect_params=detect_params)
+			PM = calibrate_projector(webcam, CM, table_dimensions, avg_frames=20, detect_params=detect_params)
 			print(PM)
 			
 		if inp == ord('b'):

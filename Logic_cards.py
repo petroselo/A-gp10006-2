@@ -29,14 +29,14 @@ ident = lambda a:[C.UNKNOWABLE]
 
 # Lambda takes a list of input values of length n_in and returns a list of output values of length n_out
 logic_card_dict = {
-20: Logic_gate('0',    0, 1, lambda a: [0]),
-21: Logic_gate('1',    0, 1, lambda a: [1]),
-22: Logic_gate('NOT',  1, 1, lambda a: [not  a[0] ]),
-23: Logic_gate('AND',  2, 1, lambda a: [int( a[0] and a[1] )]),
-24: Logic_gate('OR',   2, 1, lambda a: [int( a[0] or a[1]  )]),
-25: Logic_gate('XOR',  2, 1, lambda a: [0] if a[0]==a[1] else [1]),
-26: Logic_gate('NAND', 2, 1, lambda a: [int(not( a[0] and a[1] ))]),
-27: Logic_gate('XNOR', 2, 1, lambda a: [1] if a[0]==a[1] else [0])
+	20: Logic_gate('0',    0, 1, lambda a: [0]),
+	21: Logic_gate('1',    0, 1, lambda a: [1]),
+	22: Logic_gate('NOT',  1, 1, lambda a: [not  a[0] ]),
+	23: Logic_gate('AND',  2, 1, lambda a: [int( a[0] and a[1] )]),
+	24: Logic_gate('OR',   2, 1, lambda a: [int( a[0] or a[1]  )]),
+	25: Logic_gate('XOR',  2, 1, lambda a: [0] if a[0]==a[1] else [1]),
+	26: Logic_gate('NAND', 2, 1, lambda a: [int(not( a[0] and a[1] ))]),
+	27: Logic_gate('XNOR', 2, 1, lambda a: [1] if a[0]==a[1] else [0])
 }
 
 

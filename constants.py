@@ -21,6 +21,11 @@ BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 RED = (0, 0, 255)
 BLUE = (255, 0, 0)
+CYAN = (255, 255, 0)
+MAGENTA = (255, 0, 255)
+YELLOW = (0, 255, 255)
+WHITE = (255, 255, 255)
+
 LINE_WIDTH = 2
 
 # Camera calibration
@@ -54,6 +59,7 @@ PROJ_BOARD_SIDELENGTH = 11
 PROJ_WIDTH = 1920
 PROJ_HEIGHT = 1080
 PROJ_SHAPE = (PROJ_HEIGHT, PROJ_WIDTH)
+PROJ_SCREEN_DIMENSIONS = np.array([PROJ_WIDTH, PROJ_HEIGHT], dtype='int')
 
 # Ratio of seen table image to hi-def image on which drawing takes place.
 TABLE_OVERLAY_FACTOR = 2

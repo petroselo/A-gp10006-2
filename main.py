@@ -10,7 +10,8 @@ import io
 import matplotlib.pyplot as plt # or could look into plotly or ggplot2
 # from numpy.core.fromnumeric import shape
 from numpy.core.numeric import zeros_like
-from OpenCV.debug import BLUE
+
+DEBUG = True
 
 
 # User-defined constants
@@ -31,6 +32,10 @@ dist_coeffs = C.INITIAL_CALIBRATION_DC
 def main():
 
 	webcam, detect_params = initial_setup()
+
+	cccc_code = cv.VideoWriter_fourcc(*'XVID')
+	
+	RECORDING = False
 
 	CM = np.eye(3, dtype='float64')
 	PM = np.eye(3, dtype='float64')
@@ -126,20 +131,40 @@ def main():
 			xvec, yvec = np.linspace(0, table_dimensions[0]/20, 101), np.linspace(0, table_dimensions[1]/20, 101)
 			x, y = np.meshgrid(xvec, yvec, indexing='ij')
 			z = x + y*1j
+
+			#print(x[:3,:3])
 			F = zeros_like(z) # = φ + jψ
 			# Add all the card functions to the grid
 			for card in pflow_cards:
 				F += card.F(z)
 
 			ψ = np.imag(F)
+
+			p = None
+			if 15 in fids:
+				#p = p0 - .5ρ(u**2 + v**2) =  - (dψ/δy)^2 -(dψ/dx)^2
+				dpsibydy = (ψ[1:-1,:-2]-ψ[1:-1,2:])/(y[1:-1,:-2]-y[1:-1,2:])
+				dpsibydx = (ψ[:-2,1:-1]-ψ[2:,1:-1])/(x[:-2,1:-1]-x[2:,1:-1])
+				p = -  ( dpsibydy )**2 - ( dpsibydx)**2
+
+				for card in pflow_cards:
+					mask = ((x[1:-1,1:-1]-card.pos[0])**2 + (y[1:-1,1:-1]-card.pos[1])**2) > card.scale2
+					p = mask * p + np.max(p)
+
 			# Plot the contours, exclude cards and draw on the table overlay.
 			fig = plt.figure(dpi=100, figsize=(table_dimensions[0]/100, table_dimensions[1]/100), frameon=False ) #facecolor should be irrelevant.
 			ax = fig.add_subplot(111)
 			#ax.axis('off')
 
 			ax.set_facecolor('black')
-			#ax.contour(x, y, ψ, colors="red", levels=np.linspace(np.min(ψ), np.max(ψ), 23), antialiased=False, linestyles='solid') # BGR / RGB switching means Red <-> Blue
-			ax.contourf(x, y, ψ, levels=23, antialiased=False, linestyles='solid') # BGR / RGB switching means Red <-> Blue
+			ax.contour(x, y, ψ, colors="red", levels=np.linspace(np.min(ψ), np.max(ψ), 23), antialiased=False, linestyles='solid') # BGR / RGB switching means Red <-> Blue
+			#ax.contourf(x, y, ψ, levels=23, antialiased=False, linestyles='solid') # BGR / RGB switching means Red <-> Blue
+			
+			if not p is None:
+				ax.contourf(x[1:-1, 1:-1], y[1:-1, 1:-1], p, levels=23)
+
+			
+			
 			fig.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
 			fig.canvas.draw()
 
@@ -158,19 +183,25 @@ def main():
 			#cv.imshow('Plot image', plot_img)
 			#cv.imshow('mask', mask)
 			cv.copyTo(plot_img, mask, table_overlay)
+			#table_overlay = table_overlay // 1.2
 
 			# Don't project over cards themselves.
 			for card in pflow_cards:
-				cv.circle(table_overlay, card.img_pos, card.img_scale, C.BLACK)
-
+				cv.circle(table_overlay, (C.TABLE_OVERLAY_FACTOR*card.img_pos).astype(int), int(C.TABLE_OVERLAY_FACTOR*card.img_scale), C.BLACK, -1)
 
 			pflow_cards.clear()
 
 
 		cv.imshow(C.VIDEO_TITLE, table_frame)
 
+		# Save video
+		if RECORDING:
+			output.write(table_frame)
+
 		projector_output = cv.warpPerspective(table_overlay, PM, C.PROJ_SCREEN_DIMENSIONS)
-		cv.imshow(C.PROJ_WINDOW, projector_output)
+		if RECORDING:
+			projector_output[-3:-1,-3:-1,2] = 255
+		cv.imshow(C.PROJ_WINDOW, (projector_output).astype(np.uint8))
 
 
 		# Quitting condition
@@ -183,11 +214,13 @@ def main():
 			CM, table_dimensions = get_table_camera_transform(C.BOARD6_2, webcam, detect_params, avg_frames=20,
 																									cam_mtx=cam_mtx, dist_coeffs=dist_coeffs)
 			table_overlay = np.zeros(shape=(table_dimensions[0]*C.TABLE_OVERLAY_FACTOR, table_dimensions[1]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
+			output = cv.VideoWriter('Output.mp4', cccc_code, 20.0, (table_dimensions[0], table_dimensions[1] ))
 		
 		if inp == ord('l'):
 			CM = np.loadtxt('PerspectiveMatrix.txt')
 			table_dimensions = np.loadtxt('Dimensions.txt', dtype='int64')
 			table_overlay = np.zeros(shape=(table_dimensions[1]*C.TABLE_OVERLAY_FACTOR, table_dimensions[0]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8) + 100
+			output = cv.VideoWriter('Output.mp4', cccc_code, 20.0, (table_dimensions[0], table_dimensions[1] ))
 		if inp == ord('s'):
 			np.savetxt('PerspectiveMatrix.txt', CM)
 			np.savetxt('Dimensions.txt', table_dimensions, fmt='%u')
@@ -203,6 +236,8 @@ def main():
 		if inp == ord('p'):
 			PM = calibrate_projector(webcam, CM, table_dimensions, avg_frames=20, detect_params=detect_params)
 			print(PM)
+		if inp == ord('r'):
+			RECORDING = not RECORDING
 			
 		if inp == ord('b'):
 			if projector_blank:
@@ -212,10 +247,14 @@ def main():
 			projector_blank = not projector_blank
 
 	webcam.release()
+	output.release()
 	cv.destroyAllWindows()
 
 
 def initial_setup():
+
+	if DEBUG: print('Starting initial setup...')
+
 	detect_params = cv.aruco.DetectorParameters_create()
 
 	# Set up webcam
@@ -227,6 +266,9 @@ def initial_setup():
 	if not webcam.isOpened():
 		print('Failed to open camera.')
 		exit()
+
+	if DEBUG: print('Finish initial setup...')
+
 	return webcam, detect_params
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ class Input:
 class Output:
 	def __init__(self, pos, parent):
 		self.pos = pos
-		self.val = 0
+		self.val = C.FLOATING
 		self.parent_card = parent
 
 ident = lambda a:[C.UNKNOWABLE]
@@ -31,14 +31,13 @@ ident = lambda a:[C.UNKNOWABLE]
 logic_card_dict = {
 	20: Logic_gate('0',    0, 1, lambda a: [0]),
 	21: Logic_gate('1',    0, 1, lambda a: [1]),
-	22: Logic_gate('NOT',  1, 1, lambda a: [not  a[0] ]),
-	23: Logic_gate('AND',  2, 1, lambda a: [int( a[0] and a[1] )]),
-	24: Logic_gate('OR',   2, 1, lambda a: [int( a[0] or a[1]  )]),
+	22: Logic_gate('NOT',  1, 1, lambda a: [0] if a[0] == 1 else [1]),
+	23: Logic_gate('AND',  2, 1, lambda a: [1] if a[0]==1 and a[1]==1 else [0]),
+	24: Logic_gate('OR',   2, 1, lambda a: [1] if a[0]==1 or a[1]==1 else [0]),
 	25: Logic_gate('XOR',  2, 1, lambda a: [0] if a[0]==a[1] else [1]),
-	26: Logic_gate('NAND', 2, 1, lambda a: [int(not( a[0] and a[1] ))]),
+	26: Logic_gate('NAND', 2, 1, lambda a: [0] if a[0]==1 and a[1]==1 else [1]),
 	27: Logic_gate('XNOR', 2, 1, lambda a: [1] if a[0]==a[1] else [0])
 }
-
 
 class Logic_card:
 

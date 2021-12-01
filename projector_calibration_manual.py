@@ -96,6 +96,13 @@ def calibrate_projector(webcam, CM, table_frame_dimensions, avg_frames, detect_p
 		if inp == ord('p'):
 			capturing = True
 
+		#Toggle projector window to fullscreen.
+		if inp ==ord('f'):
+			if cv.getWindowProperty(C.PROJ_WINDOW, cv.WND_PROP_FULLSCREEN) == cv.WINDOW_NORMAL:
+				cv.setWindowProperty(C.PROJ_WINDOW,cv.WND_PROP_FULLSCREEN,cv.WINDOW_FULLSCREEN)
+			else:
+				cv.setWindowProperty(C.PROJ_WINDOW,cv.WND_PROP_FULLSCREEN,cv.WINDOW_NORMAL)
+
 		cv.imshow(C.VIDEO_TITLE, table_frame)
 
 	PM = cv.getPerspectiveTransform((avg_proj_corners / avg_frames * C.TABLE_OVERLAY_FACTOR).astype('float32'), destination_corners)

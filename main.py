@@ -13,7 +13,6 @@ from numpy.core.numeric import zeros_like
 
 DEBUG = True
 
-
 # User-defined constants
 import constants as C
 

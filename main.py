@@ -24,6 +24,7 @@ from projector_calibration_manual import calibrate_projector
 
 from Logic_cards import Logic_card
 from Pflow_cards import Pflow_card
+#from Cards import Card
 
 ## Initial calibration values
 cam_mtx = C.INITIAL_CALIBRATION_CM
@@ -46,6 +47,7 @@ def main():
 	logic_cards = []
 	pflow_cards = []
 
+	# The window that will be fullscreen on the projector.
 	proj_window = cv.namedWindow(C.PROJ_WINDOW, cv.WND_PROP_FULLSCREEN)
 	proj_img = np.zeros(shape=(C.PROJ_HEIGHT, C.PROJ_WIDTH, 3), dtype=np.uint8) + 255
 	cv.putText(proj_img, 'Hello World', (960,540), C.FONT, 1, C.BLUE, 2)
@@ -66,7 +68,7 @@ def main():
 
 		(allCorners, ids, rejected) = cv.aruco.detectMarkers(table_frame, C.DICTIONARY, parameters = detect_params)
 
-		#construct list of logic cards and their positions.
+		# Construct list of logic cards and their positions.
 
 		#send that information off to another function to analyse the logic and work out what to do about it and draw that on the frame.
 
@@ -74,6 +76,8 @@ def main():
 			fids = ids.flatten()
 			markers = zip(fids, allCorners)
 			for (fid, raw_corners) in markers:
+
+				# Add to general card list.
 
 				# If in logic card range of markers.
 				if fid > 19 and fid < 28:

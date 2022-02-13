@@ -23,6 +23,7 @@ from perspective_calibration import get_table_camera_transform
 from projector_calibration_manual import calibrate_projector
 
 from Logic_cards import Logic_card
+from Control_cards import Control_card
 from Pflow_cards import Pflow_card
 
 ## Initial calibration values
@@ -45,6 +46,7 @@ def main():
 
 	logic_cards = []
 	pflow_cards = []
+	control_cards = []
 
 	proj_window = cv.namedWindow(C.PROJ_WINDOW, cv.WND_PROP_FULLSCREEN)
 	proj_img = np.zeros(shape=(C.PROJ_HEIGHT, C.PROJ_WIDTH, 3), dtype=np.uint8) + 255
@@ -81,10 +83,16 @@ def main():
 					logic_cards.append( Logic_card(fid, corners))
 
 				# If in pflow card range
-				if fid > 9 and fid < 16:
-					img_corners = raw_corners.reshape((4, 2)).astype(np.int32)
-					corners = (raw_corners.reshape((4, 2)).astype(np.int32) * np.array([1, -1]) + np.array([0, table_dimensions[1]]) )/20 # flip the y coord.
-					pflow_cards.append( Pflow_card(fid, corners, img_corners))
+				# if fid > 9 and fid < 16:
+				# 	img_corners = raw_corners.reshape((4, 2)).astype(np.int32)
+				# 	corners = (raw_corners.reshape((4, 2)).astype(np.int32) * np.array([1, -1]) + np.array([0, table_dimensions[1]]) )/20 # flip the y coord.
+				# 	pflow_cards.append( Pflow_card(fid, corners, img_corners))
+
+				# If in control range.
+				if fid >= 30 and fid <= 37:
+					corners = raw_corners.reshape((4, 2)).astype(np.int32)
+					control_cards.append( Control_card(fid, corners))
+
 
 
 
@@ -191,6 +199,25 @@ def main():
 
 			pflow_cards.clear()
 
+		# if len(control_cards) > 0:
+		# 	for cc in control_cards:
+		# 		for inp in cc.inps:
+		# 			for ccc in logic_cards:
+		# 				if cc is not ccc: # exclude current card
+		# 					for outp in ccc.outps:
+		# 						dist = np.linalg.norm(outp.pos - inp.pos)
+		# 						if dist < lc.snap_distance and ( (inp.conn is None) or (dist < np.linalg.norm(inp.pos - inp.conn.pos) )):
+		# 							inp.conn = outp
+
+		if len(control_cards) > 0:
+			for cc in control_cards:
+				#if cc.fid == 31:
+
+				if cc.fid == 33:
+					cv.circle(table_overlay, tuple(2*cc.position.astype('int')), int(3*cc.scale), C.BLUE)
+					cv.putText(table_overlay, f'Value: {cc.rot}', tuple(2*cc.position.astype('int')), C.FONT, 1, C.BLUE, 1, lineType=cv.LINE_AA)
+
+			control_cards.clear()
 
 		cv.imshow(C.VIDEO_TITLE, table_frame)
 
@@ -258,7 +285,7 @@ def initial_setup():
 	detect_params = cv.aruco.DetectorParameters_create()
 
 	# Set up webcam
-	webcam = cv.VideoCapture(2)
+	webcam = cv.VideoCapture(0)
 	webcam.set(cv.CAP_PROP_FRAME_WIDTH, 800)
 	webcam.set(cv.CAP_PROP_FRAME_HEIGHT, 600)
 	#webcam.set(cv.CAP_PROP_FPS, 25)

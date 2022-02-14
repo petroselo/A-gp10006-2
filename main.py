@@ -24,11 +24,13 @@ from projector_calibration_manual import calibrate_projector
 from Logic_cards import Logic_card
 from Control_cards import Control_card
 from Pflow_cards import Pflow_card
-#from Cards import Card
+from Cards import Card
 
 ## Initial calibration values
 cam_mtx = C.INITIAL_CALIBRATION_CM
 dist_coeffs = C.INITIAL_CALIBRATION_DC
+
+table_frame = np.empty(0)
 
 def main():
 
@@ -46,7 +48,7 @@ def main():
 
 	logic_cards = []
 	pflow_cards = []
-	control_cards = []
+	cards = []
 
 	# The window that will be fullscreen on the projector.
 	proj_window = cv.namedWindow(C.PROJ_WINDOW, cv.WND_PROP_FULLSCREEN)
@@ -79,6 +81,9 @@ def main():
 			for (fid, raw_corners) in markers:
 
 				# Add to general card list.
+				if fid >= 30:
+					cards.append( Card(fid, raw_corners) )
+						
 
 				# If in logic card range of markers.
 				if fid > 19 and fid < 28:
@@ -92,12 +97,18 @@ def main():
 				# 	pflow_cards.append( Pflow_card(fid, corners, img_corners))
 
 				# If in control range.
-				if fid >= 30 and fid <= 37:
-					corners = raw_corners.reshape((4, 2)).astype(np.int32)
-					control_cards.append( Control_card(fid, corners))
+				# if fid >= 30 and fid <= 37:
+				# 	corners = raw_corners.reshape((4, 2)).astype(np.int32)
+				# 	control_cards.append( Control_card(fid, corners))
 
 
+		for card in cards:
+			for i in range(4):
+				draw_line(table_frame, card.outer_corners[i], card.outer_corners[(i+1)%4], C.RED)
+				draw_line(table_frame, card.title_corners[i], card.title_corners[(i+1)%4], C.BLUE)
+				cv.putText(table_frame, f'{card.rotation*180/np.pi}', tuple(card.title_corners[3].astype(np.int32)), C.FONT, C.FONT_WIDTH, C.BLUE, 2)
 
+		cards.clear()
 
 		# Loop through logic cards connecting each input to closest output within snapping distance.
 		for lc in logic_cards:
@@ -212,15 +223,15 @@ def main():
 		# 						if dist < lc.snap_distance and ( (inp.conn is None) or (dist < np.linalg.norm(inp.pos - inp.conn.pos) )):
 		# 							inp.conn = outp
 
-		if len(control_cards) > 0:
-			for cc in control_cards:
-				#if cc.fid == 31:
+		# if len(control_cards) > 0:
+		# 	for cc in control_cards:
+		# 		#if cc.fid == 31:
 
-				if cc.fid == 33:
-					cv.circle(table_overlay, tuple(2*cc.position.astype('int')), int(3*cc.scale), C.BLUE)
-					cv.putText(table_overlay, f'Value: {cc.rot}', tuple(2*cc.position.astype('int')), C.FONT, 1, C.BLUE, 1, lineType=cv.LINE_AA)
+		# 		if cc.fid == 33:
+		# 			cv.circle(table_overlay, tuple(2*cc.position.astype('int')), int(3*cc.scale), C.BLUE)
+		# 			cv.putText(table_overlay, f'Value: {cc.rot}', tuple(2*cc.position.astype('int')), C.FONT, 1, C.BLUE, 1, lineType=cv.LINE_AA)
 
-			control_cards.clear()
+		# 	control_cards.clear()
 
 		cv.imshow(C.VIDEO_TITLE, table_frame)
 
@@ -280,6 +291,11 @@ def main():
 	output.release()
 	cv.destroyAllWindows()
 
+def draw_line(img, start, end, colour):
+	# Draw a line on the table frame.
+	cv.line(img, tuple(start.astype(np.int32)), tuple(end.astype(np.int32)), colour)
+	# Draw a corresponding line on the output
+	#cv.line(table_frame, tuple(start.astype(np.int32)), tuple(end.astype(np.int32)))
 
 def initial_setup():
 

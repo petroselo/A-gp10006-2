@@ -69,6 +69,90 @@ def main():
 		table_frame = cv.warpPerspective(cam_frame, CM, table_dimensions)
 		table_overlay *= 0
 
+		#
+		table_overlay = process_frame(table_frame)
+
+	
+
+		projector_output = cv.warpPerspective(table_overlay, PM, C.PROJ_SCREEN_DIMENSIONS)
+		if RECORDING:
+			projector_output[-3:-1,-3:-1,2] = 255
+		cv.imshow(C.PROJ_WINDOW, (projector_output).astype(np.uint8))
+
+
+		# Quitting condition
+		inp = cv.waitKey(1)
+		if inp == ord('q'):
+			break
+
+		# Generate, Save and Load previous perspective calibration
+		if inp == ord('c'):
+			CM, table_dimensions = get_table_camera_transform(C.BOARD6_2, webcam, detect_params, avg_frames=20,
+																									cam_mtx=cam_mtx, dist_coeffs=dist_coeffs)
+			table_overlay = np.zeros(shape=(table_dimensions[0]*C.TABLE_OVERLAY_FACTOR, table_dimensions[1]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
+			output = cv.VideoWriter('Output.mp4', cccc_code, 20.0, (table_dimensions[0], table_dimensions[1] ))
+		
+		if inp == ord('l'):
+			CM = np.loadtxt('PerspectiveMatrix.txt')
+			table_dimensions = np.loadtxt('Dimensions.txt', dtype='int64')
+			table_overlay = np.zeros(shape=(table_dimensions[1]*C.TABLE_OVERLAY_FACTOR, table_dimensions[0]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8) + 100
+			output = cv.VideoWriter('Output.mp4', cccc_code, 20.0, (table_dimensions[0], table_dimensions[1] ))
+		if inp == ord('s'):
+			np.savetxt('PerspectiveMatrix.txt', CM)
+			np.savetxt('Dimensions.txt', table_dimensions, fmt='%u')
+		
+		#Toggle projector window to fullscreen.
+		if inp ==ord('f'):
+			if cv.getWindowProperty(C.PROJ_WINDOW, cv.WND_PROP_FULLSCREEN) == cv.WINDOW_NORMAL:
+				cv.setWindowProperty(C.PROJ_WINDOW,cv.WND_PROP_FULLSCREEN,cv.WINDOW_FULLSCREEN)
+			else:
+				cv.setWindowProperty(C.PROJ_WINDOW,cv.WND_PROP_FULLSCREEN,cv.WINDOW_NORMAL)
+
+		# Projector calibration
+		if inp == ord('p'):
+			PM = calibrate_projector(webcam, CM, table_dimensions, avg_frames=20, detect_params=detect_params)
+			print(PM)
+		if inp == ord('r'):
+			RECORDING = not RECORDING
+			
+		if inp == ord('b'):
+			if projector_blank:
+				imshow(C.PROJ_WINDOW, np.zeros(shape=C.PROJ_SHAPE))
+			else:
+				imshow(C.PROJ_WINDOW, np.zeros(shape=C.PROJ_SHAPE))
+			projector_blank = not projector_blank
+
+	webcam.release()
+	output.release()
+	cv.destroyAllWindows()
+
+def draw_line(img, start, end, colour):
+	# Draw a line on the table frame.
+	cv.line(img, tuple(start.astype(np.int32)), tuple(end.astype(np.int32)), colour)
+	# Draw a corresponding line on the output
+	#cv.line(table_frame, tuple(start.astype(np.int32)), tuple(end.astype(np.int32)))
+
+def initial_setup():
+
+	if DEBUG: print('Starting initial setup...')
+
+	detect_params = cv.aruco.DetectorParameters_create()
+
+	# Set up webcam
+	webcam = cv.VideoCapture(0)
+	webcam.set(cv.CAP_PROP_FRAME_WIDTH, 800)
+	webcam.set(cv.CAP_PROP_FRAME_HEIGHT, 600)
+	#webcam.set(cv.CAP_PROP_FPS, 25)
+	webcam.set(cv.CAP_PROP_AUTOFOCUS, 0) 	#Disable autofocus
+	if not webcam.isOpened():
+		print('Failed to open camera.')
+		exit()
+
+	if DEBUG: print('Finish initial setup...')
+
+	return webcam, detect_params
+
+def process_frame(table_frame):
 		(allCorners, ids, rejected) = cv.aruco.detectMarkers(table_frame, C.DICTIONARY, parameters = detect_params)
 
 		# Construct list of logic cards and their positions.
@@ -239,83 +323,7 @@ def main():
 		if RECORDING:
 			output.write(table_frame)
 
-		projector_output = cv.warpPerspective(table_overlay, PM, C.PROJ_SCREEN_DIMENSIONS)
-		if RECORDING:
-			projector_output[-3:-1,-3:-1,2] = 255
-		cv.imshow(C.PROJ_WINDOW, (projector_output).astype(np.uint8))
-
-
-		# Quitting condition
-		inp = cv.waitKey(1)
-		if inp == ord('q'):
-			break
-
-		# Generate, Save and Load previous perspective calibration
-		if inp == ord('c'):
-			CM, table_dimensions = get_table_camera_transform(C.BOARD6_2, webcam, detect_params, avg_frames=20,
-																									cam_mtx=cam_mtx, dist_coeffs=dist_coeffs)
-			table_overlay = np.zeros(shape=(table_dimensions[0]*C.TABLE_OVERLAY_FACTOR, table_dimensions[1]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8)
-			output = cv.VideoWriter('Output.mp4', cccc_code, 20.0, (table_dimensions[0], table_dimensions[1] ))
-		
-		if inp == ord('l'):
-			CM = np.loadtxt('PerspectiveMatrix.txt')
-			table_dimensions = np.loadtxt('Dimensions.txt', dtype='int64')
-			table_overlay = np.zeros(shape=(table_dimensions[1]*C.TABLE_OVERLAY_FACTOR, table_dimensions[0]*C.TABLE_OVERLAY_FACTOR, 3), dtype=np.uint8) + 100
-			output = cv.VideoWriter('Output.mp4', cccc_code, 20.0, (table_dimensions[0], table_dimensions[1] ))
-		if inp == ord('s'):
-			np.savetxt('PerspectiveMatrix.txt', CM)
-			np.savetxt('Dimensions.txt', table_dimensions, fmt='%u')
-		
-		#Toggle projector window to fullscreen.
-		if inp ==ord('f'):
-			if cv.getWindowProperty(C.PROJ_WINDOW, cv.WND_PROP_FULLSCREEN) == cv.WINDOW_NORMAL:
-				cv.setWindowProperty(C.PROJ_WINDOW,cv.WND_PROP_FULLSCREEN,cv.WINDOW_FULLSCREEN)
-			else:
-				cv.setWindowProperty(C.PROJ_WINDOW,cv.WND_PROP_FULLSCREEN,cv.WINDOW_NORMAL)
-
-		# Projector calibration
-		if inp == ord('p'):
-			PM = calibrate_projector(webcam, CM, table_dimensions, avg_frames=20, detect_params=detect_params)
-			print(PM)
-		if inp == ord('r'):
-			RECORDING = not RECORDING
-			
-		if inp == ord('b'):
-			if projector_blank:
-				imshow(C.PROJ_WINDOW, np.zeros(shape=C.PROJ_SHAPE))
-			else:
-				imshow(C.PROJ_WINDOW, np.zeros(shape=C.PROJ_SHAPE))
-			projector_blank = not projector_blank
-
-	webcam.release()
-	output.release()
-	cv.destroyAllWindows()
-
-def draw_line(img, start, end, colour):
-	# Draw a line on the table frame.
-	cv.line(img, tuple(start.astype(np.int32)), tuple(end.astype(np.int32)), colour)
-	# Draw a corresponding line on the output
-	#cv.line(table_frame, tuple(start.astype(np.int32)), tuple(end.astype(np.int32)))
-
-def initial_setup():
-
-	if DEBUG: print('Starting initial setup...')
-
-	detect_params = cv.aruco.DetectorParameters_create()
-
-	# Set up webcam
-	webcam = cv.VideoCapture(0)
-	webcam.set(cv.CAP_PROP_FRAME_WIDTH, 800)
-	webcam.set(cv.CAP_PROP_FRAME_HEIGHT, 600)
-	#webcam.set(cv.CAP_PROP_FPS, 25)
-	webcam.set(cv.CAP_PROP_AUTOFOCUS, 0) 	#Disable autofocus
-	if not webcam.isOpened():
-		print('Failed to open camera.')
-		exit()
-
-	if DEBUG: print('Finish initial setup...')
-
-	return webcam, detect_params
+		return table_overlay
 
 if __name__ == "__main__":
 	main()

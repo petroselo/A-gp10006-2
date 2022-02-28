@@ -9,7 +9,7 @@ alpha = 0.5
 beta = 0.8
 
 # erf=loss function, x0 starting value (vector), initial massive stepsize, alpha value.
-def descend(erf, x_0, step_0):
+def descend(erf, x_0, step_0=1000):
     x = x_0
     step = step_0
     e = massive_number

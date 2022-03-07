@@ -47,7 +47,7 @@ r4.R.value=20
 j1 = Junction()
 cards.append(j1)
 
-#j2
+#j2+
 j2 = Junction()
 cards.append(j2)
 
@@ -76,8 +76,3 @@ def erf(npx):
 
 
 npx = descend(erf, npx0)
-
-
-
-
-

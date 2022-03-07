@@ -17,7 +17,7 @@ pdf.set_text_color(255, 255, 255)
 
 dictionary = cv.aruco.Dictionary_get(cv.aruco.DICT_4X4_50)
 border = 1
-first_id = 30
+first_id = 40
 tag_width = dictionary.markerSize + 2*border
 
 pdf.line(0, 105, wid, 105)

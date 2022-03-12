@@ -1,0 +1,33 @@
+c
+	parameter (nmax_vort=1000, nwks=1001, a=0.68)
+c
+c  for cascade, a=0.68
+
+	real nhatx, nhaty
+c
+	common / target_points /
+     &	      xt(nmax_vort), yt(nmax_vort), nhatx(nmax_vort),
+     &	      nhaty(nmax_vort), dlt(nmax_vort), slope(nmax_vort),
+     &        dlv(nmax_vort)
+        common / kutta_condition_point /
+     &        ikutta
+	common / vortex_panels /
+     &	      xv(nmax_vort), yv(nmax_vort), xc(nmax_vort), ntot
+	common / inflow   /
+     &        U0, V0
+        common / outflow  /
+     &        V2
+c
+c gamma is vortex strength on panel, gv is per unit length
+c
+	common / vortex_strengths /
+     &	      gamma(nmax_vort), gv(nmax_vort),
+     & gam(nmax_vort,2),gamtot(2),coeff1,coeff2,Vmag,Vangle
+	common / influence_coeffs /
+     &	      ainf(nmax_vort,nmax_vort)
+	common / induced_velocities /
+     &	      uindx(nmax_vort), uindy(nmax_vort), uind(nmax_vort)
+	common / pi_value    /
+     &	      pi
+	common / plot_info /
+     &        xmin, xmax, ymin, ymax, nhts

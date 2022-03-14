@@ -9,9 +9,10 @@ import io
 #import matplotlib
 import matplotlib.pyplot as plt # or could look into plotly or ggplot2
 # from numpy.core.fromnumeric import shape
-from numpy.core.numeric import zeros_like
 
 from splinefit import splinefit
+from uniform_panels import uniform_points
+from panel import solve_panels
 
 DEBUG = True
 
@@ -205,17 +206,29 @@ def process_frame(table_frame, detect_params, table_overlay, RECORDING):
 		knot_points.append(knot_points[0])
 		knots = np.array(knot_points) # n x 2
 		
-		spline_points = splinefit(knots)
+		_, visual_spline_points = splinefit(knots)
+
+		# Convert knots to uniform spaced vortices. There are n-1 panels as two vortices at trailing edge.
+		n_vort = 100
+		_, hi_res_spline_points = splinefit(knots, 5*n_vort)
+		vortex_points = uniform_points(hi_res_spline_points, n_vort)
+
+		U = np.array([1,0])
+		
+		# Vortex circulations
+		gam = solve_panels(vortex_points[:,0], vortex_points[:,1], U, BC_FLAG=0)
+
+
 
 		# Draw the points and connecting lines and the splines.
 		for card in aerofoil_cards:
 			card.draw(table_frame, table_overlay, C.TABLE_OVERLAY_FACTOR)
 
-		cv.polylines(table_frame, [spline_points.astype(np.int32)], isClosed=False, color=C.WHITE)
-		cv.polylines(table_frame, [knots.astype(np.int32)], isClosed=False, color=C.RED)
+		cv.polylines(table_frame, [visual_spline_points.astype(np.int32)], isClosed=False, color=C.WHITE)
+		#cv.polylines(table_frame, [knots.astype(np.int32)], isClosed=False, color=C.RED)
 
-		cv.polylines(table_overlay, [(C.TABLE_OVERLAY_FACTOR*spline_points).astype(np.int32)], isClosed=False, color=C.WHITE)
-		cv.polylines(table_overlay, [(C.TABLE_OVERLAY_FACTOR*knots).astype(np.int32)], isClosed=False, color=C.RED)
+		cv.polylines(table_overlay, [(C.TABLE_OVERLAY_FACTOR*visual_spline_points).astype(np.int32)], isClosed=False, color=C.WHITE)
+		#cv.polylines(table_overlay, [(C.TABLE_OVERLAY_FACTOR*knots).astype(np.int32)], isClosed=False, color=C.RED)
 
 		aerofoil_cards.clear()
 
@@ -279,7 +292,7 @@ def process_frame(table_frame, detect_params, table_overlay, RECORDING):
 		z = x + y*1j
 
 		#print(x[:3,:3])
-		F = zeros_like(z) # = φ + jψ
+		F = np.zeros_like(z) # = φ + jψ
 		# Add all the card functions to the grid
 		for card in pflow_cards:
 			F += card.F(z)
@@ -309,7 +322,6 @@ def process_frame(table_frame, detect_params, table_overlay, RECORDING):
 		if not p is None:
 			ax.contourf(x[1:-1, 1:-1], y[1:-1, 1:-1], p, levels=23)
 
-		
 		
 		fig.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
 		fig.canvas.draw()

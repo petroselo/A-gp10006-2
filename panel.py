@@ -35,12 +35,12 @@ def solve_panels(xv, yv, U, pitch=0):
 				ainf[ti, vi] = ( 1/(2*np.pi*r2) ) * (-nhatx[ti]*Δy  + nhaty[ti]*Δx )
 
 	else: # Infinite Cascade
-		pitch = BC_FLAG
+		
 		pass
 
     # Apply the kutta condition that vorticity at the final point = -(vorticity at the first point.) => no vorticity. 
-	ainf[nv-1,0] = 1/dl[0]
-	ainf[nv-1,nv-1] = 1/dl[nv-2]
+	ainf[nv-1, 0] = 1/dl[0]
+	ainf[nv-1, nv-1] = 1/dl[nv-2]
 
      # Solve ainf*g=-u_ind for gam
 	try:
@@ -66,6 +66,6 @@ def target_points(xv, yv):
 	dl = np.sqrt(δx*δx + δy*δy)
 
 	nhatx = δy / dl
-	nhaty = δx / dl
+	nhaty = -δx / dl
 
 	return xt, yt, dl, nhatx, nhaty

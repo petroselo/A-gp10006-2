@@ -17,16 +17,21 @@ def solve_panels(xv, yv, U, pitch=0):
 	# Set target points where BC are enforced and their surface-normal vectors.
 	xt, yt, dl, nhatx, nhaty = target_points(xv, yv)
 
+	print(dl)
+
     # Normal flow through target points due to incident flow
 	# U.nhat at each target point
-	u_ind = U[0]*nhatx + U[1]*nhaty
-	u_ind[-1] = 0
+	u_ind = np.zeros(nv)
+	u_ind[0:nv-1] = U[0]*nhatx + U[1]*nhaty
+	u_ind[nv-1] = 0
+	print(u_ind)
+
 
 	# Calculate influence coefficients
 	# inf[i,j]*Γ[j] is flow at target i due to vortex j normal to surface
 	ainf = np.zeros((nv,nv))
 
-	if pitch == 0: # Single aerofoil
+	if pitch == 0:              # Single aerofoil
 		for ti in range(nv-1):
 			for vi in range(nv):
 				Δx = xt[ti] - xv[vi]
@@ -34,35 +39,35 @@ def solve_panels(xv, yv, U, pitch=0):
 				r2 = Δx*Δx + Δy*Δy
 				ainf[ti, vi] = ( 1/(2*np.pi*r2) ) * (-nhatx[ti]*Δy  + nhaty[ti]*Δx )
 
-	else: # Infinite Cascade
-		
-		pass
+	else:                       # Infinite Cascade
+		for ti in range(nv-1):
+			for vi in range(nv):
+				x = (2*np.pi * ( xt[ti]-xv[vi] ) )/pitch
+				y = (2*np.pi * ( yt[ti]-yv[vi] ) )/pitch
+				ainf[ti,vi] = -(nhatx[ti]*(1/(2*pitch))*np.sin(y))/(np.cosh(x)-np.cos(y))+(nhaty[ti]*(1/(2*pitch))*np.sinh(x))/(np.cosh(x)-np.cos(y))
 
-    # Apply the kutta condition that vorticity at the final point = -(vorticity at the first point.) => no vorticity. 
-	ainf[nv-1, 0] = 1/dl[0]
-	ainf[nv-1, nv-1] = 1/dl[nv-2]
+    # Apply the kutta condition that vorticity at the final point = -(vorticity at the first point.) => no vorticity, smooth flow
+	ainf[nv-1, 0] = 1/(dl[0])
+	ainf[nv-1, nv-1] = 1/(dl[nv-2])
 
+	print(ainf)
      # Solve ainf*g=-u_ind for gam
 	try:
 		gam = np.linalg.solve(ainf, -u_ind)
-		return gam
+		return gam, xt, yt, nhatx, nhaty #todo remove extra returns
 	except:
 		return np.zeros(nv)
 
 
 # The ith panel is always the next one along from the the ith point.
 def target_points(xv, yv):
-	#np.roll(a,-1) is equivalent to a[i+1].
-	# ie indexing the next entry along
-	xvp1 = np.roll(xv,-1)
-	yvp1 = np.roll(yv,-1)
 
 	# Target points are at the middle of each panel.
-	xt = (xv + xvp1)/2
-	yt = (yv + yvp1)/2
+	xt = (xv[0:-1] + xv[1:])/2
+	yt = (yv[0:-1] + yv[1:])/2
 
-	δx = xvp1 - xv
-	δy = yvp1 - yv
+	δx = xv[1:] - xv[0:-1]
+	δy = yv[1:] - yv[0:-1]
 	dl = np.sqrt(δx*δx + δy*δy)
 
 	nhatx = δy / dl

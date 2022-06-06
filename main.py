@@ -218,7 +218,7 @@ def process_frame(table_frame, detect_params, table_overlay, RECORDING):
 		U = np.array([1,0])
 		
 		# Vortex circulations
-		gam = solve_panels(vortex_points[:,0], vortex_points[:,1], U, BC_FLAG=0)
+		gam = solve_panels(vortex_points[:,0], vortex_points[:,1], U, pitch=0)
 
 
 

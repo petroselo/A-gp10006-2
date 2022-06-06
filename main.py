@@ -139,10 +139,12 @@ def initial_setup():
 	detect_params = cv.aruco.DetectorParameters_create()
 
 	# Set up webcam
-	webcam = cv.VideoCapture(2)
+	webcam = cv.VideoCapture(1)
 	webcam.set(cv.CAP_PROP_FRAME_WIDTH, 800)
 	webcam.set(cv.CAP_PROP_FRAME_HEIGHT, 600)
 	#webcam.set(cv.CAP_PROP_FPS, 25)
+	if DEBUG: print("Check 1")
+
 	webcam.set(cv.CAP_PROP_AUTOFOCUS, 0) 	#Disable autofocus
 	if not webcam.isOpened():
 		print('Failed to open camera.')
